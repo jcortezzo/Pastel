@@ -17,7 +17,8 @@ public class Player : MonoBehaviour
 
     private bool spacebarHeld;
     private float timeSinceGrounded;  // e.g. canJump
-    private float timeSinceJumpKeyPressed; // tracks when spacebar is pressed used w/ buffering
+    private bool isGrounded;
+    private float timeSinceJumpKeyPressed;  // tracks when spacebar is pressed used w/ buffering
     public bool isTalking;  // While a player is talking they can't walk or jump
 
     public Animator anim;
@@ -60,14 +61,16 @@ public class Player : MonoBehaviour
 
         // Checking if spacebar held (no buffer)
         if (Input.GetKeyDown(KeyCode.Space))
+        {
             spacebarHeld = true;
+        }
         else if (Input.GetKeyUp(KeyCode.Space))
         {
             spacebarHeld = false;
             // Switches from red spacebar to white spacebar
         }
 
-        timeSinceGrounded += Time.deltaTime; // janky :(
+        timeSinceGrounded = isGrounded ? 0 : timeSinceGrounded + Time.deltaTime; // janky :(
 
         anim.SetFloat("VerticalSpeed", rb.velocity.y);
         anim.SetBool("CanJump", (timeSinceJumpKeyPressed < JUMP_PRESS_BUFFER && timeSinceGrounded < COYOTE_BUFFER));
@@ -77,7 +80,7 @@ public class Player : MonoBehaviour
     {
         Vector2 newVeloc = Walk();
         rb.velocity = isTalking ? new Vector2(0, 0) : newVeloc;
-        if (timeSinceJumpKeyPressed < JUMP_PRESS_BUFFER && timeSinceGrounded < COYOTE_BUFFER)
+        if (isGrounded && timeSinceJumpKeyPressed < JUMP_PRESS_BUFFER && timeSinceGrounded < COYOTE_BUFFER)
             Jump();
 
         if (IsMovingUp() && !spacebarHeld) // If we're moving up and bar has been released counter force down 
@@ -142,8 +145,17 @@ public class Player : MonoBehaviour
                 if (point.normal.y >= CAN_JUMP_THRESHHOLD)
                 {
                     timeSinceGrounded = 0f;
+                    isGrounded = true;
                 }
             }
+        }
+    }
+
+    private void OnCollisionExit2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Ground"))
+        {
+            isGrounded = false;
         }
     }
 }
